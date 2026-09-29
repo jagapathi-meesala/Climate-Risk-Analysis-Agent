@@ -1,12 +1,12 @@
 # Explainability
 
-## Inputs
+## Inputs and Data Sources
 The agent uses structured input data supplied directly to its deterministic climate-analysis tools. The data source is the structured input supplied by the caller, and the input values provide the location identifiers and environmental data required by the implemented calculations.
 
-## Decision
+## Decision and Reasoning
 The agent's decision process applies deterministic rules and formulas implemented by its analysis tools. The agent decides each resulting metric or category from the supplied input values and the defined thresholds or weights, without hidden reasoning or external LLM inference.
 
-## Limits
+## Limits and Constraints
 A key limitation is that the agent only processes structured climate data and calculations implemented by its tools. A key constraint is that it does not automatically discover external data or provide unsupported scientific interpretations beyond its implemented formulas.
 
 ## Agent Purpose
