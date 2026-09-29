@@ -35,96 +35,291 @@ Outputs are strictly returned as structured dictionaries.
 
 ## Decision/Rule Transparency (Tool-by-Tool) & Tool-by-Tool Examples
 
-### 1. analyze-climate-exposure
-- **Purpose**: Analyze structured climate exposure for a location or asset.
-- **Exact Input Fields**: `location_id` (req), `location_name` (opt), `temperature_exposure` (opt bool), `precipitation_exposure` (opt bool), `drought_exposure` (opt bool), `flood_exposure` (opt bool), `extreme_weather_exposure` (opt bool).
-- **Validation**: Requires `location_id`. Expects dictionary structure.
-- **Exact Output Fields**: `location_id`, `exposure_indicators`, `available_exposure_factors`, `missing_factors`, `normalized_exposure_value`, `structured_findings`, `calculation_explanation`.
-- **Exact Calculation**: `normalized_exposure_value = len(active_exposures) / 5.0`
-- **Missing-Data Behavior**: Missing boolean flags are tracked in `missing_factors` and do not contribute to `active_exposures`.
-- **Assumptions & Limitations**: Unsupplied flags are not treated as actively `False` but strictly as missing.
-- **Example**: 
-  - **Input**: `{"location_id": "L1", "temperature_exposure": True, "flood_exposure": False}`
-  - **Decision Logic**: Validates `L1` -> evaluates 2 provided factors -> counts 1 `True` factor -> 1 / 5 = 0.2.
-  - **Output**: `{"location_id": "L1", "exposure_indicators": ["temperature_exposure"], "available_exposure_factors": ["temperature_exposure", "flood_exposure"], "missing_factors": ["drought_exposure", "precipitation_exposure", "extreme_weather_exposure"], "normalized_exposure_value": 0.2, ...}`
-  - **Explanation**: 1 out of 5 possible total exposures is active.
+**Tool 1: analyze-climate-exposure**
 
-### 2. analyze-temperature-risk
-- **Purpose**: Calculate deterministic temperature indicators.
-- **Exact Input Fields**: `location_id` (req), `observed_temperature` (req), `historical_average` (req), `heat_threshold` (opt).
-- **Validation**: Inputs must be numeric types (int/float).
-- **Exact Output Fields**: `location_id`, `temperature_anomaly`, `observation_summary`, conditionally `threshold_exceedance`, conditionally `heat_exposure_indicator`.
-- **Exact Calculation**: `temperature_anomaly = observed_temperature - historical_average`
-- **Exact Thresholds**: If `heat_threshold` supplied: `exceedance = max(0.0, observed_temperature - heat_threshold)`.
-- **Missing-Data Behavior**: Missing required fields fails validation immediately.
-- **Example**:
-  - **Input**: `{"location_id": "L2", "observed_temperature": 35.0, "historical_average": 30.0, "heat_threshold": 32.0}`
-  - **Decision Logic**: `35.0 - 30.0 = 5.0` anomaly. `max(0.0, 35.0 - 32.0) = 3.0` exceedance.
-  - **Output**: `{"location_id": "L2", "temperature_anomaly": 5.0, "observation_summary": "Observed 35.0 vs historical 30.0.", "threshold_exceedance": 3.0, "heat_exposure_indicator": True, ...}`
-  - **Explanation**: The anomaly derives strictly from subtracting historical from observed.
+### Inputs
+- **Exact Required Inputs**: `location_id` (string).
+- **Exact Optional Inputs**: `location_name` (string), `temperature_exposure` (boolean), `precipitation_exposure` (boolean), `drought_exposure` (boolean), `flood_exposure` (boolean), `extreme_weather_exposure` (boolean).
+- **Accepted Types**: Strings for identifiers, booleans for exposure factors.
+- **Validation Boundaries**: Input must be a valid dictionary structure containing the `location_id`.
 
-### 3. analyze-precipitation-risk
-- **Purpose**: Calculate deterministic precipitation indicators.
-- **Exact Input Fields**: `location_id` (req), `observed_precipitation` (req), `historical_precipitation` (req), `precipitation_threshold` (opt).
-- **Validation (Negative boundaries)**: Precipitation inputs cannot be negative `< 0`.
+### Failure Handling
+- **Missing Required Input Behavior**: Fails validation if `location_id` is missing.
+- **Invalid Type Behavior**: Returns `{"error": "Invalid input provided.", "status": "failed"}` via the registry if `input_data` is not a dictionary.
+- **Invalid Numeric Boundary Behavior**: Not applicable (no numeric inputs).
+- **Zero-Division Protection**: Not applicable (denominator is a hardcoded constant of 5.0).
+- **Exact Validation/Error Behavior**: Securely intercepts missing/invalid types at the `validate_input` stage.
+
+### Tools/Capabilities
+- **Exact Tool Name**: `analyze-climate-exposure`
+- **Capability Provided**: Analyzes structured climate exposure for a location or asset.
+- **Deterministic Operation**: Calculates a normalized exposure score by dividing the number of active boolean exposure flags by the total standard exposure factors.
+
+### Decision / Rules
+- **Exact Deterministic Rule**: Counts the provided `True` values and divides by 5.
+- **Formula**: `normalized_exposure_value = len(active_exposures) / 5.0`
+- **Weights**: All 5 standard factors carry equal weight (0.2 each).
+- **Thresholds**: None explicitly categorized.
+- **Branching Logic**: Loops over standard factors; if a factor is present in input, it tracks it as available; if `True`, it tracks as active.
+
+### Expected Outputs
+- **Exact Output Field Names**: `location_id`, `exposure_indicators`, `available_exposure_factors`, `missing_factors`, `normalized_exposure_value`, `structured_findings`, `calculation_explanation`.
+- **Conditional Output Fields**: None.
+- **Categories/Indicators**: Lists of specific active and missing indicators.
+- **Error Output Behavior**: Returns error dict natively through `AgentCore` registry on validation failure.
+
+### Worked Example
+- **Input**: `{"location_id": "L1", "temperature_exposure": True, "flood_exposure": False}`
+- **Validation**: Ensures `location_id` "L1" exists and input is a dict.
+- **Calculation/Rule**: Evaluates 2 provided factors -> counts 1 `True` factor -> `1 / 5.0 = 0.2`.
+- **Output**: `{"location_id": "L1", "exposure_indicators": ["temperature_exposure"], "available_exposure_factors": ["temperature_exposure", "flood_exposure"], "missing_factors": ["drought_exposure", "precipitation_exposure", "extreme_weather_exposure"], "normalized_exposure_value": 0.2, ...}`
+- **Explanation**: 1 out of 5 possible total exposures is active, yielding 0.2.
+
+
+**Tool 2: analyze-temperature-risk**
+
+### Inputs
+- **Exact Required Inputs**: `location_id` (string), `observed_temperature` (numeric), `historical_average` (numeric).
+- **Exact Optional Inputs**: `heat_threshold` (numeric).
+- **Accepted Types**: Integers or floats for temperatures.
+- **Validation Boundaries**: All numeric fields are strictly verified for numeric type (`int` or `float`).
+
+### Failure Handling
+- **Missing Required Input Behavior**: Fails validation immediately if required keys are absent.
+- **Invalid Type Behavior**: Rejects string representations of numbers.
+- **Invalid Numeric Boundary Behavior**: None explicitly checked for temperature.
+- **Zero-Division Protection**: Not applicable (no division).
+- **Exact Validation/Error Behavior**: Returns `False` from `validate_input` if types mismatch or required fields are missing.
+
+### Tools/Capabilities
+- **Exact Tool Name**: `analyze-temperature-risk`
+- **Capability Provided**: Calculates deterministic temperature indicators.
+- **Deterministic Operation**: Computes the temperature anomaly by subtracting historical average from observed temperature, and checks exceedance against a threshold.
+
+### Decision / Rules
+- **Exact Deterministic Rule**: Subtracts historical from observed values.
+- **Formula**: `temperature_anomaly = observed_temperature - historical_average`
+- **Weights**: None.
+- **Thresholds**: If `heat_threshold` supplied: `exceedance = max(0.0, observed_temperature - heat_threshold)`.
+- **Branching Logic**: Optional fields trigger additional dictionary inclusions (`threshold_exceedance`, `heat_exposure_indicator`).
+
+### Expected Outputs
+- **Exact Output Field Names**: `location_id`, `temperature_anomaly`, `observation_summary`, `calculation_explanation`.
+- **Conditional Output Fields**: `threshold_exceedance`, `heat_exposure_indicator`.
+- **Categories/Indicators**: `heat_exposure_indicator` is a boolean.
+- **Error Output Behavior**: Safe rejection returning error dict.
+
+### Worked Example
+- **Input**: `{"location_id": "L2", "observed_temperature": 35.0, "historical_average": 30.0, "heat_threshold": 32.0}`
+- **Validation**: Passes numeric checks for all fields.
+- **Calculation/Rule**: `35.0 - 30.0 = 5.0` anomaly. `max(0.0, 35.0 - 32.0) = 3.0` exceedance.
+- **Output**: `{"location_id": "L2", "temperature_anomaly": 5.0, "observation_summary": "Observed 35.0 vs historical 30.0.", "threshold_exceedance": 3.0, "heat_exposure_indicator": True, "calculation_explanation": "temperature_anomaly = observed_temperature - historical_average"}`
+- **Explanation**: The anomaly derives strictly from subtracting historical from observed.
+
+
+**Tool 3: analyze-precipitation-risk**
+
+### Inputs
+- **Exact Required Inputs**: `location_id` (string), `observed_precipitation` (numeric), `historical_precipitation` (numeric).
+- **Exact Optional Inputs**: `precipitation_threshold` (numeric).
+- **Accepted Types**: Integers or floats.
+- **Validation Boundaries**: Precipitation inputs cannot be negative (`< 0`).
+
+### Failure Handling
+- **Missing Required Input Behavior**: Validation fails if omitted.
+- **Invalid Type Behavior**: Non-numeric values rejected.
+- **Invalid Numeric Boundary Behavior**: Negative precipitation values immediately return `False` during validation.
 - **Zero-Division Protection**: Percentage difference is skipped entirely if `historical_precipitation == 0`.
-- **Exact Output Fields**: `location_id`, `precipitation_anomaly`, conditionally `percentage_difference`, conditionally `threshold_exceedance`, conditionally `precipitation_condition`.
-- **Exact Calculation**: `anomaly = observed - historical`.
-- **Example**:
-  - **Input**: `{"location_id": "L3", "observed_precipitation": 120, "historical_precipitation": 100}`
-  - **Decision Logic**: `120 - 100 = 20`. `(20 / 100) * 100 = 20%`.
-  - **Output**: `{"location_id": "L3", "precipitation_anomaly": 20.0, "percentage_difference": 20.0, ...}`
-  - **Explanation**: Mathematical percentage difference applies because history is safely non-zero.
+- **Exact Validation/Error Behavior**: Secure boundaries ensure no impossible (negative) rain values are processed.
 
-### 4. calculate-drought-risk
-- **Purpose**: Compute drought score based on precipitation deficit and dry days.
-- **Exact Input Fields**: `precipitation_deficit` (req), `dry_days` (req).
-- **Validation**: `dry_days` cannot be `< 0`.
-- **Exact Output Fields**: `drought_score`, `contributing_factors`, `applied_thresholds`, `calculation_explanation`, `risk_category`, `limitations`.
-- **Exact Weights**: 0.6 for precipitation_deficit, 0.4 for dry_days.
-- **Exact Thresholds**: `Severe` (> 50), `Moderate` (> 20), else `Low`.
-- **Example**:
-  - **Input**: `{"precipitation_deficit": 60, "dry_days": 10}`
-  - **Decision Logic**: `(60 * 0.6) + (10 * 0.4) = 36 + 4 = 40.0` -> Moderate.
-  - **Output**: `{"drought_score": 40.0, "risk_category": "Moderate", ...}`
-  - **Explanation**: Output falls firmly in the moderate threshold boundary (between 20 and 50).
+### Tools/Capabilities
+- **Exact Tool Name**: `analyze-precipitation-risk`
+- **Capability Provided**: Calculates deterministic precipitation indicators.
+- **Deterministic Operation**: Finds the raw difference (anomaly) and percent difference in precipitation against historical norms.
 
-### 5. calculate-flood-risk
-- **Purpose**: Compute deterministic flood risk score.
-- **Exact Input Fields**: `cumulative_rainfall` (req), `drainage_capacity` (req).
-- **Zero-Division Protection**: `drainage_capacity` strictly enforced to be `> 0`.
-- **Exact Output Fields**: `flood_risk_score`, `contributing_factors`, `threshold_conditions`, `risk_category`, `calculation_explanation`, `limitations`.
-- **Exact Calculation**: `risk_score = (cumulative_rainfall / drainage_capacity) * 100`.
-- **Exact Thresholds**: `High` (>= 100), `Medium` (>= 75), else `Low`.
-- **Example**:
-  - **Input**: `{"cumulative_rainfall": 80, "drainage_capacity": 100}`
-  - **Decision Logic**: `(80 / 100) * 100 = 80.0` -> Medium.
-  - **Output**: `{"flood_risk_score": 80.0, "risk_category": "Medium", ...}`
-  - **Explanation**: Calculates saturation percentage relative to explicit capacity.
+### Decision / Rules
+- **Exact Deterministic Rule**: Subtracts historical from observed precipitation.
+- **Formula**: `anomaly = observed_precipitation - historical_precipitation`. `percentage_difference = (anomaly / historical_precipitation) * 100`.
+- **Weights**: None.
+- **Thresholds**: If `precipitation_threshold` provided, exceedance is computed.
+- **Branching Logic**: If `historical_precipitation > 0`, adds percentage difference. If threshold provided, adds `precipitation_condition` ("high" or "normal").
 
-### 6. calculate-climate-vulnerability
-- **Purpose**: Compute vulnerability score based on population and infrastructure exposures.
-- **Exact Input Fields**: `population_exposure` (req), `infrastructure_exposure` (req).
-- **Exact Output Fields**: `vulnerability_score`, `factor_contributions`, `formula`, `assumptions`, `category`, `missing_data`, `limitations`.
-- **Exact Weights**: 0.5 for population, 0.5 for infrastructure.
-- **Exact Thresholds**: `High` (>= 80), `Medium` (>= 40), else `Low`.
-- **Example**:
-  - **Input**: `{"population_exposure": 50, "infrastructure_exposure": 50}`
-  - **Decision Logic**: `(50 * 0.5) + (50 * 0.5) = 50.0` -> Medium.
-  - **Output**: `{"vulnerability_score": 50.0, "category": "Medium", "missing_data": [], ...}`
-  - **Explanation**: Weights combine uniformly.
+### Expected Outputs
+- **Exact Output Field Names**: `location_id`, `precipitation_anomaly`, `calculation_explanation`.
+- **Conditional Output Fields**: `percentage_difference`, `threshold_exceedance`, `precipitation_condition`.
+- **Categories/Indicators**: `precipitation_condition` can be "high" or "normal".
+- **Error Output Behavior**: Fails via registry safely.
 
-### 7. calculate-climate-priority
-- **Purpose**: Determine overall priority using hazard, exposure, and vulnerability scores.
-- **Exact Input Fields**: `hazard_score` (req), `exposure_score` (req), `vulnerability_score` (req).
-- **Exact Output Fields**: `calculated_priority_score`, `contributing_factors`, `formula`, `weights`, `thresholds`, `priority_category`, `explanation`, `limitations`.
-- **Exact Weights**: Hazard (0.4), Exposure (0.3), Vulnerability (0.3).
-- **Exact Thresholds**: `Critical` (>= 75), `Elevated` (>= 50), else `Standard`.
-- **Example**:
-  - **Input**: `{"hazard_score": 100, "exposure_score": 100, "vulnerability_score": 100}`
-  - **Decision Logic**: `(100 * 0.4) + (100 * 0.3) + (100 * 0.3) = 100.0` -> Critical.
-  - **Output**: `{"calculated_priority_score": 100.0, "priority_category": "Critical", ...}`
-  - **Explanation**: Result achieves maximum theoretical boundary.
+### Worked Example
+- **Input**: `{"location_id": "L3", "observed_precipitation": 120, "historical_precipitation": 100}`
+- **Validation**: Validates numeric types and >= 0 bounds.
+- **Calculation/Rule**: `120 - 100 = 20`. `(20 / 100) * 100 = 20%`.
+- **Output**: `{"location_id": "L3", "precipitation_anomaly": 20.0, "percentage_difference": 20.0, ...}`
+- **Explanation**: Mathematical percentage difference applies because history is safely non-zero and positive.
+
+
+**Tool 4: calculate-drought-risk**
+
+### Inputs
+- **Exact Required Inputs**: `precipitation_deficit` (numeric), `dry_days` (numeric).
+- **Exact Optional Inputs**: None.
+- **Accepted Types**: Integers or floats.
+- **Validation Boundaries**: `dry_days` cannot be `< 0`.
+
+### Failure Handling
+- **Missing Required Input Behavior**: Immediately fails.
+- **Invalid Type Behavior**: Reject strings.
+- **Invalid Numeric Boundary Behavior**: Negative `dry_days` fails validation.
+- **Zero-Division Protection**: Not applicable.
+- **Exact Validation/Error Behavior**: Safely returns `False` in `validate_input`.
+
+### Tools/Capabilities
+- **Exact Tool Name**: `calculate-drought-risk`
+- **Capability Provided**: Computes a drought score.
+- **Deterministic Operation**: Calculates a weighted score combining precipitation deficit and consecutive dry days.
+
+### Decision / Rules
+- **Exact Deterministic Rule**: Linearly combines inputs using hardcoded weights.
+- **Formula**: `score = (precipitation_deficit * 0.6) + (dry_days * 0.4)`
+- **Weights**: 0.6 for precipitation_deficit, 0.4 for dry_days.
+- **Thresholds**: `Severe` (> 50), `Moderate` (> 20), else `Low`.
+- **Branching Logic**: Standard `if/elif/else` threshold bucket categorization.
+
+### Expected Outputs
+- **Exact Output Field Names**: `drought_score`, `contributing_factors`, `applied_thresholds`, `calculation_explanation`, `risk_category`, `limitations`.
+- **Conditional Output Fields**: None.
+- **Categories/Indicators**: `Severe`, `Moderate`, `Low`.
+- **Error Output Behavior**: Rejects invalid states.
+
+### Worked Example
+- **Input**: `{"precipitation_deficit": 60, "dry_days": 10}`
+- **Validation**: Ensures fields are numeric and >= 0.
+- **Calculation/Rule**: `(60 * 0.6) + (10 * 0.4) = 36 + 4 = 40.0`.
+- **Output**: `{"drought_score": 40.0, "risk_category": "Moderate", ...}`
+- **Explanation**: Output falls firmly in the moderate threshold boundary (between 20 and 50).
+
+
+**Tool 5: calculate-flood-risk**
+
+### Inputs
+- **Exact Required Inputs**: `cumulative_rainfall` (numeric), `drainage_capacity` (numeric).
+- **Exact Optional Inputs**: None.
+- **Accepted Types**: Integers or floats.
+- **Validation Boundaries**: Both must be `>= 0`, and `drainage_capacity` must be `> 0`.
+
+### Failure Handling
+- **Missing Required Input Behavior**: Validation fails.
+- **Invalid Type Behavior**: Rejects strings/booleans.
+- **Invalid Numeric Boundary Behavior**: Negative rainfall fails validation.
+- **Zero-Division Protection**: `drainage_capacity` strictly enforced to be `> 0` to prevent `ZeroDivisionError`.
+- **Exact Validation/Error Behavior**: Returns `False` internally if parameters are unsafe.
+
+### Tools/Capabilities
+- **Exact Tool Name**: `calculate-flood-risk`
+- **Capability Provided**: Computes a deterministic flood risk score.
+- **Deterministic Operation**: Assesses how close cumulative rainfall is to the drainage capacity.
+
+### Decision / Rules
+- **Exact Deterministic Rule**: Expresses rainfall as a percentage of drainage capacity.
+- **Formula**: `risk_score = (cumulative_rainfall / drainage_capacity) * 100`
+- **Weights**: None.
+- **Thresholds**: `High` (>= 100), `Medium` (>= 75), else `Low`.
+- **Branching Logic**: Standard bounds checking for category string assignment.
+
+### Expected Outputs
+- **Exact Output Field Names**: `flood_risk_score`, `contributing_factors`, `threshold_conditions`, `risk_category`, `calculation_explanation`, `limitations`.
+- **Conditional Output Fields**: None.
+- **Categories/Indicators**: `High`, `Medium`, `Low`.
+- **Error Output Behavior**: Wraps validation error safely.
+
+### Worked Example
+- **Input**: `{"cumulative_rainfall": 80, "drainage_capacity": 100}`
+- **Validation**: Checks numbers and verifies `drainage_capacity` > 0.
+- **Calculation/Rule**: `(80 / 100) * 100 = 80.0`.
+- **Output**: `{"flood_risk_score": 80.0, "risk_category": "Medium", ...}`
+- **Explanation**: Calculates saturation percentage relative to explicit capacity.
+
+
+**Tool 6: calculate-climate-vulnerability**
+
+### Inputs
+- **Exact Required Inputs**: `population_exposure` (numeric), `infrastructure_exposure` (numeric).
+- **Exact Optional Inputs**: None.
+- **Accepted Types**: Integers or floats.
+- **Validation Boundaries**: Must be valid numbers.
+
+### Failure Handling
+- **Missing Required Input Behavior**: Fails validation.
+- **Invalid Type Behavior**: Safely rejects via `isinstance` checks.
+- **Invalid Numeric Boundary Behavior**: Not explicitly bounded in code beyond numeric type.
+- **Zero-Division Protection**: Not applicable.
+- **Exact Validation/Error Behavior**: Checks schema adherence.
+
+### Tools/Capabilities
+- **Exact Tool Name**: `calculate-climate-vulnerability`
+- **Capability Provided**: Computes vulnerability score based on exposures.
+- **Deterministic Operation**: Calculates an evenly weighted score of population and infrastructure.
+
+### Decision / Rules
+- **Exact Deterministic Rule**: Applies fixed 0.5 weights to both variables.
+- **Formula**: `vulnerability_score = (population_exposure * 0.5) + (infrastructure_exposure * 0.5)`
+- **Weights**: 0.5 for population, 0.5 for infrastructure.
+- **Thresholds**: `High` (>= 80), `Medium` (>= 40), else `Low`.
+- **Branching Logic**: Evaluates thresholds for category.
+
+### Expected Outputs
+- **Exact Output Field Names**: `vulnerability_score`, `factor_contributions`, `formula`, `assumptions`, `category`, `missing_data`, `limitations`.
+- **Conditional Output Fields**: None.
+- **Categories/Indicators**: `High`, `Medium`, `Low`.
+- **Error Output Behavior**: Rejects unvalidated states.
+
+### Worked Example
+- **Input**: `{"population_exposure": 50, "infrastructure_exposure": 50}`
+- **Validation**: Validates numeric presence.
+- **Calculation/Rule**: `(50 * 0.5) + (50 * 0.5) = 50.0`.
+- **Output**: `{"vulnerability_score": 50.0, "category": "Medium", "missing_data": [], ...}`
+- **Explanation**: Weights combine uniformly.
+
+
+**Tool 7: calculate-climate-priority**
+
+### Inputs
+- **Exact Required Inputs**: `hazard_score` (numeric), `exposure_score` (numeric), `vulnerability_score` (numeric).
+- **Exact Optional Inputs**: None.
+- **Accepted Types**: Integers or floats.
+- **Validation Boundaries**: Type checks for numeric values.
+
+### Failure Handling
+- **Missing Required Input Behavior**: Missing any of the 3 fields fails validation.
+- **Invalid Type Behavior**: Ensures inputs are proper python numbers.
+- **Invalid Numeric Boundary Behavior**: Not bounded by minimums/maximums in the code beyond numbers.
+- **Zero-Division Protection**: Not applicable.
+- **Exact Validation/Error Behavior**: Native python structural validation.
+
+### Tools/Capabilities
+- **Exact Tool Name**: `calculate-climate-priority`
+- **Capability Provided**: Determines overall priority score.
+- **Deterministic Operation**: Computes a three-factor weighted average using hazard, exposure, and vulnerability.
+
+### Decision / Rules
+- **Exact Deterministic Rule**: Weighted linear combination.
+- **Formula**: `priority_score = (hazard_score * 0.4) + (exposure_score * 0.3) + (vulnerability_score * 0.3)`
+- **Weights**: Hazard (0.4), Exposure (0.3), Vulnerability (0.3).
+- **Thresholds**: `Critical` (>= 75), `Elevated` (>= 50), else `Standard`.
+- **Branching Logic**: Outputs a string based on final score bounds.
+
+### Expected Outputs
+- **Exact Output Field Names**: `calculated_priority_score`, `contributing_factors`, `formula`, `weights`, `thresholds`, `priority_category`, `explanation`, `limitations`.
+- **Conditional Output Fields**: None.
+- **Categories/Indicators**: `Critical`, `Elevated`, `Standard`.
+- **Error Output Behavior**: Handles structurally invalid input seamlessly via registry.
+
+### Worked Example
+- **Input**: `{"hazard_score": 100, "exposure_score": 100, "vulnerability_score": 100}`
+- **Validation**: Type validation passes.
+- **Calculation/Rule**: `(100 * 0.4) + (100 * 0.3) + (100 * 0.3) = 100.0`.
+- **Output**: `{"calculated_priority_score": 100.0, "priority_category": "Critical", ...}`
+- **Explanation**: Result achieves maximum theoretical boundary.
 
 ## Explainability of Calculated Results
 For every mathematical result produced by this agent:
