@@ -1,23 +1,29 @@
 # Explainability
 
+## Inputs
+The agent uses structured input data supplied directly to its deterministic climate-analysis tools. These inputs contain the location identifiers and numerical environmental values required by the implemented calculations.
+
+## Decision
+The agent makes decisions by applying deterministic rules and formulas implemented by its analysis tools. Each resulting metric or category is derived from supplied input values and the defined thresholds or weights without hidden reasoning or external LLM inference.
+
+## Limits
+The agent is limited to the structured climate data and calculations implemented by its tools. It does not automatically discover external data or provide unsupported scientific interpretations beyond its implemented formulas.
+
 ## Agent Purpose
 The Climate Risk Analysis Agent is a fully deterministic, framework-independent analytical system. It is designed to analyze structured climate and environmental risk data strictly based on user-supplied inputs. The core agent architecture relies entirely on hard-coded Python logic and mathematical formulas; it **does not** rely on Generative AI, machine learning models, or external LLMs to perform any of its risk, exposure, hazard, or vulnerability calculations.
 
-## Inputs
-The agent uses structured input data supplied directly to its deterministic climate-analysis tools. These inputs contain the location identifiers and numerical environmental values specifically required by each underlying calculation.
+## Input Mechanisms
 All input reaches the agent and its tools via structured dictionaries matching the schemas defined by the `ToolContract`.
 - **Tool-Specific Input Contracts**: Each tool validates its own arguments against its required properties.
 - **Required and Optional Fields**: Each tool explicitly dictates which fields must be present and which are optional (e.g., threshold limits).
 - **Validation Behavior**: All inputs undergo rigorous validation. The agent checks data types (e.g., ensuring numeric values where required), boundaries (e.g., preventing negative values for precipitation), and mathematical soundness (e.g., explicitly blocking `drainage_capacity <= 0` to prevent division-by-zero errors).
 
-## Decision
-The agent makes decisions by applying deterministic rules and formulas implemented securely by its internal analysis tools. Each resulting category or metric is derived exactly from the supplied input values and the defined thresholds, explicitly avoiding any hidden reasoning or external LLM inference.
+## Decision Mechanisms
 Decisions and calculated outcomes are produced exclusively by deterministic rules and formulas written into the `execute` methods of the tool classes. 
 The seven tools transform numeric and boolean input data into analytical outputs (such as risk anomalies or categorical assessments). 
 There is no hidden reasoning, no non-deterministic generation, and no LLM reasoning process evaluating the risk scores. It is 100% rules-based.
 
-## Limits
-The agent is explicitly limited to processing the structured climate data and executing the mathematical calculations rigidly implemented by its tools. It does not automatically discover external data from third-party APIs or provide unsupported subjective scientific interpretations beyond its static formulas.
+## Execution Limits
 - **No External Discovery**: The agent makes no external API calls to discover missing attributes (e.g., fetching satellite weather data).
 - **No Automatic Unit Conversion**: Input values are assumed to be supplied in uniform, compatible formats.
 - **Not Official Warnings**: Calculated categories (like "Severe", "Critical") represent arbitrary output buckets based on internal logic. They are **not** official climate classifications or governmental emergency warnings.
@@ -29,7 +35,7 @@ Outputs are strictly returned as structured dictionaries.
 - **Validation/Error Behavior**: If validation fails during `validate_input()`, the dynamic tool registry intercepts the failure and securely returns `{"error": "Invalid input provided.", "status": "failed"}` or a specific Python exception safely caught and converted to an error dictionary. There is no universal response schema beyond the registry failure wrapper.
 
 ## Complete Execution Lifecycle
-1. **Input**: A request dictating the tool to use and its structured arguments arrives.
+1. **Input Generation**: A request dictating the tool to use and its structured arguments arrives.
 2. **Validation**: The `DynamicToolRegistry` locates the tool and executes `validate_input(input_data)`.
 3. **Tool Selection / Registry Execution**: Upon successful validation, the registry securely invokes `execute(input_data)`.
 4. **Deterministic Calculation**: The isolated Python logic performs strict arithmetic steps based on the validated inputs.
@@ -40,7 +46,7 @@ Outputs are strictly returned as structured dictionaries.
 
 **Tool 1: analyze-climate-exposure**
 
-### Inputs
+### Input Requirements
 - **Exact Required Inputs**: `location_id` (string).
 - **Exact Optional Inputs**: `location_name` (string), `temperature_exposure` (boolean), `precipitation_exposure` (boolean), `drought_exposure` (boolean), `flood_exposure` (boolean), `extreme_weather_exposure` (boolean).
 - **Accepted Types**: Strings for identifiers, booleans for exposure factors.
@@ -53,12 +59,12 @@ Outputs are strictly returned as structured dictionaries.
 - **Zero-Division Protection**: Not applicable (denominator is a hardcoded constant of 5.0).
 - **Exact Validation/Error Behavior**: Securely intercepts missing/invalid types at the `validate_input` stage.
 
-### Tools/Capabilities
+### Tools and Capabilities
 - **Exact Tool Name**: `analyze-climate-exposure`
 - **Capability Provided**: Analyzes structured climate exposure for a location or asset.
 - **Deterministic Operation**: Calculates a normalized exposure score by dividing the number of active boolean exposure flags by the total standard exposure factors.
 
-### Decision / Rules
+### Rules Applied
 - **Exact Deterministic Rule**: Counts the provided `True` values and divides by 5.
 - **Formula**: `normalized_exposure_value = len(active_exposures) / 5.0`
 - **Weights**: All 5 standard factors carry equal weight (0.2 each).
@@ -81,7 +87,7 @@ Outputs are strictly returned as structured dictionaries.
 
 **Tool 2: analyze-temperature-risk**
 
-### Inputs
+### Input Requirements
 - **Exact Required Inputs**: `location_id` (string), `observed_temperature` (numeric), `historical_average` (numeric).
 - **Exact Optional Inputs**: `heat_threshold` (numeric).
 - **Accepted Types**: Integers or floats for temperatures.
@@ -94,12 +100,12 @@ Outputs are strictly returned as structured dictionaries.
 - **Zero-Division Protection**: Not applicable (no division).
 - **Exact Validation/Error Behavior**: Returns `False` from `validate_input` if types mismatch or required fields are missing.
 
-### Tools/Capabilities
+### Tools and Capabilities
 - **Exact Tool Name**: `analyze-temperature-risk`
 - **Capability Provided**: Calculates deterministic temperature indicators.
 - **Deterministic Operation**: Computes the temperature anomaly by subtracting historical average from observed temperature, and checks exceedance against a threshold.
 
-### Decision / Rules
+### Rules Applied
 - **Exact Deterministic Rule**: Subtracts historical from observed values.
 - **Formula**: `temperature_anomaly = observed_temperature - historical_average`
 - **Weights**: None.
@@ -122,7 +128,7 @@ Outputs are strictly returned as structured dictionaries.
 
 **Tool 3: analyze-precipitation-risk**
 
-### Inputs
+### Input Requirements
 - **Exact Required Inputs**: `location_id` (string), `observed_precipitation` (numeric), `historical_precipitation` (numeric).
 - **Exact Optional Inputs**: `precipitation_threshold` (numeric).
 - **Accepted Types**: Integers or floats.
@@ -135,12 +141,12 @@ Outputs are strictly returned as structured dictionaries.
 - **Zero-Division Protection**: Percentage difference is skipped entirely if `historical_precipitation == 0`.
 - **Exact Validation/Error Behavior**: Secure boundaries ensure no impossible (negative) rain values are processed.
 
-### Tools/Capabilities
+### Tools and Capabilities
 - **Exact Tool Name**: `analyze-precipitation-risk`
 - **Capability Provided**: Calculates deterministic precipitation indicators.
 - **Deterministic Operation**: Finds the raw difference (anomaly) and percent difference in precipitation against historical norms.
 
-### Decision / Rules
+### Rules Applied
 - **Exact Deterministic Rule**: Subtracts historical from observed precipitation.
 - **Formula**: `anomaly = observed_precipitation - historical_precipitation`. `percentage_difference = (anomaly / historical_precipitation) * 100`.
 - **Weights**: None.
@@ -163,7 +169,7 @@ Outputs are strictly returned as structured dictionaries.
 
 **Tool 4: calculate-drought-risk**
 
-### Inputs
+### Input Requirements
 - **Exact Required Inputs**: `precipitation_deficit` (numeric), `dry_days` (numeric).
 - **Exact Optional Inputs**: None.
 - **Accepted Types**: Integers or floats.
@@ -176,12 +182,12 @@ Outputs are strictly returned as structured dictionaries.
 - **Zero-Division Protection**: Not applicable.
 - **Exact Validation/Error Behavior**: Safely returns `False` in `validate_input`.
 
-### Tools/Capabilities
+### Tools and Capabilities
 - **Exact Tool Name**: `calculate-drought-risk`
 - **Capability Provided**: Computes a drought score.
 - **Deterministic Operation**: Calculates a weighted score combining precipitation deficit and consecutive dry days.
 
-### Decision / Rules
+### Rules Applied
 - **Exact Deterministic Rule**: Linearly combines inputs using hardcoded weights.
 - **Formula**: `score = (precipitation_deficit * 0.6) + (dry_days * 0.4)`
 - **Weights**: 0.6 for precipitation_deficit, 0.4 for dry_days.
@@ -204,7 +210,7 @@ Outputs are strictly returned as structured dictionaries.
 
 **Tool 5: calculate-flood-risk**
 
-### Inputs
+### Input Requirements
 - **Exact Required Inputs**: `cumulative_rainfall` (numeric), `drainage_capacity` (numeric).
 - **Exact Optional Inputs**: None.
 - **Accepted Types**: Integers or floats.
@@ -217,12 +223,12 @@ Outputs are strictly returned as structured dictionaries.
 - **Zero-Division Protection**: `drainage_capacity` strictly enforced to be `> 0` to prevent `ZeroDivisionError`.
 - **Exact Validation/Error Behavior**: Returns `False` internally if parameters are unsafe.
 
-### Tools/Capabilities
+### Tools and Capabilities
 - **Exact Tool Name**: `calculate-flood-risk`
 - **Capability Provided**: Computes a deterministic flood risk score.
 - **Deterministic Operation**: Assesses how close cumulative rainfall is to the drainage capacity.
 
-### Decision / Rules
+### Rules Applied
 - **Exact Deterministic Rule**: Expresses rainfall as a percentage of drainage capacity.
 - **Formula**: `risk_score = (cumulative_rainfall / drainage_capacity) * 100`
 - **Weights**: None.
@@ -245,7 +251,7 @@ Outputs are strictly returned as structured dictionaries.
 
 **Tool 6: calculate-climate-vulnerability**
 
-### Inputs
+### Input Requirements
 - **Exact Required Inputs**: `population_exposure` (numeric), `infrastructure_exposure` (numeric).
 - **Exact Optional Inputs**: None.
 - **Accepted Types**: Integers or floats.
@@ -258,12 +264,12 @@ Outputs are strictly returned as structured dictionaries.
 - **Zero-Division Protection**: Not applicable.
 - **Exact Validation/Error Behavior**: Checks schema adherence.
 
-### Tools/Capabilities
+### Tools and Capabilities
 - **Exact Tool Name**: `calculate-climate-vulnerability`
 - **Capability Provided**: Computes vulnerability score based on exposures.
 - **Deterministic Operation**: Calculates an evenly weighted score of population and infrastructure.
 
-### Decision / Rules
+### Rules Applied
 - **Exact Deterministic Rule**: Applies fixed 0.5 weights to both variables.
 - **Formula**: `vulnerability_score = (population_exposure * 0.5) + (infrastructure_exposure * 0.5)`
 - **Weights**: 0.5 for population, 0.5 for infrastructure.
@@ -286,7 +292,7 @@ Outputs are strictly returned as structured dictionaries.
 
 **Tool 7: calculate-climate-priority**
 
-### Inputs
+### Input Requirements
 - **Exact Required Inputs**: `hazard_score` (numeric), `exposure_score` (numeric), `vulnerability_score` (numeric).
 - **Exact Optional Inputs**: None.
 - **Accepted Types**: Integers or floats.
@@ -299,12 +305,12 @@ Outputs are strictly returned as structured dictionaries.
 - **Zero-Division Protection**: Not applicable.
 - **Exact Validation/Error Behavior**: Native python structural validation.
 
-### Tools/Capabilities
+### Tools and Capabilities
 - **Exact Tool Name**: `calculate-climate-priority`
 - **Capability Provided**: Determines overall priority score.
 - **Deterministic Operation**: Computes a three-factor weighted average using hazard, exposure, and vulnerability.
 
-### Decision / Rules
+### Rules Applied
 - **Exact Deterministic Rule**: Weighted linear combination.
 - **Formula**: `priority_score = (hazard_score * 0.4) + (exposure_score * 0.3) + (vulnerability_score * 0.3)`
 - **Weights**: Hazard (0.4), Exposure (0.3), Vulnerability (0.3).
