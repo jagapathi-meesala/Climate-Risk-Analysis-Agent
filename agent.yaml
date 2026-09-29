@@ -1,0 +1,11 @@
+name: climate-risk-analysis-agent
+version: 1.0.0
+description: A deterministic, framework-independent agent for analyzing structured climate and environmental risk data.
+skills:
+  - analyze-climate-exposure
+  - analyze-temperature-risk
+  - analyze-precipitation-risk
+  - calculate-drought-risk
+  - calculate-flood-risk
+  - calculate-climate-vulnerability
+  - calculate-climate-priority
