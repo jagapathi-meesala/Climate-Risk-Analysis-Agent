@@ -1,13 +1,13 @@
 # Explainability
 
 ## Inputs
-The agent uses structured input data supplied directly to its deterministic climate-analysis tools. These inputs contain the location identifiers and numerical environmental values required by the implemented calculations.
+The agent uses structured input data supplied directly to its deterministic climate-analysis tools. The data source is the structured input supplied by the caller, and the input values provide the location identifiers and environmental data required by the implemented calculations.
 
 ## Decision
-The agent makes decisions by applying deterministic rules and formulas implemented by its analysis tools. Each resulting metric or category is derived from supplied input values and the defined thresholds or weights without hidden reasoning or external LLM inference.
+The agent's decision process applies deterministic rules and formulas implemented by its analysis tools. The agent decides each resulting metric or category from the supplied input values and the defined thresholds or weights, without hidden reasoning or external LLM inference.
 
 ## Limits
-The agent is limited to the structured climate data and calculations implemented by its tools. It does not automatically discover external data or provide unsupported scientific interpretations beyond its implemented formulas.
+A key limitation is that the agent only processes structured climate data and calculations implemented by its tools. A key constraint is that it does not automatically discover external data or provide unsupported scientific interpretations beyond its implemented formulas.
 
 ## Agent Purpose
 The Climate Risk Analysis Agent is a fully deterministic, framework-independent analytical system. It is designed to analyze structured climate and environmental risk data strictly based on user-supplied inputs. The core agent architecture relies entirely on hard-coded Python logic and mathematical formulas; it **does not** rely on Generative AI, machine learning models, or external LLMs to perform any of its risk, exposure, hazard, or vulnerability calculations.
