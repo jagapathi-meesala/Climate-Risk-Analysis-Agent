@@ -4,17 +4,20 @@
 The Climate Risk Analysis Agent is a fully deterministic, framework-independent analytical system. It is designed to analyze structured climate and environmental risk data strictly based on user-supplied inputs. The core agent architecture relies entirely on hard-coded Python logic and mathematical formulas; it **does not** rely on Generative AI, machine learning models, or external LLMs to perform any of its risk, exposure, hazard, or vulnerability calculations.
 
 ## Inputs
+The agent uses structured input data supplied directly to its deterministic climate-analysis tools. These inputs contain the location identifiers and numerical environmental values specifically required by each underlying calculation.
 All input reaches the agent and its tools via structured dictionaries matching the schemas defined by the `ToolContract`.
 - **Tool-Specific Input Contracts**: Each tool validates its own arguments against its required properties.
 - **Required and Optional Fields**: Each tool explicitly dictates which fields must be present and which are optional (e.g., threshold limits).
 - **Validation Behavior**: All inputs undergo rigorous validation. The agent checks data types (e.g., ensuring numeric values where required), boundaries (e.g., preventing negative values for precipitation), and mathematical soundness (e.g., explicitly blocking `drainage_capacity <= 0` to prevent division-by-zero errors).
 
 ## Decision
+The agent makes decisions by applying deterministic rules and formulas implemented securely by its internal analysis tools. Each resulting category or metric is derived exactly from the supplied input values and the defined thresholds, explicitly avoiding any hidden reasoning or external LLM inference.
 Decisions and calculated outcomes are produced exclusively by deterministic rules and formulas written into the `execute` methods of the tool classes. 
 The seven tools transform numeric and boolean input data into analytical outputs (such as risk anomalies or categorical assessments). 
 There is no hidden reasoning, no non-deterministic generation, and no LLM reasoning process evaluating the risk scores. It is 100% rules-based.
 
 ## Limits
+The agent is explicitly limited to processing the structured climate data and executing the mathematical calculations rigidly implemented by its tools. It does not automatically discover external data from third-party APIs or provide unsupported subjective scientific interpretations beyond its static formulas.
 - **No External Discovery**: The agent makes no external API calls to discover missing attributes (e.g., fetching satellite weather data).
 - **No Automatic Unit Conversion**: Input values are assumed to be supplied in uniform, compatible formats.
 - **Not Official Warnings**: Calculated categories (like "Severe", "Critical") represent arbitrary output buckets based on internal logic. They are **not** official climate classifications or governmental emergency warnings.
